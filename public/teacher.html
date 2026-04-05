@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Attendance — Instructor</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      background: #f0f2f5;
+      color: #1a1a2e;
+      min-height: 100vh;
+    }
+
+    header {
+      background: #1a1a2e;
+      color: white;
+      padding: 1rem 2rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    header h1 { font-size: 1.3rem; font-weight: 600; }
+    .live-pill {
+      background: #22c55e;
+      color: white;
+      font-size: 0.75rem;
+      font-weight: 700;
+      padding: 0.25rem 0.8rem;
+      border-radius: 999px;
+      letter-spacing: 0.05em;
+      display: none;
+    }
+    .live-pill.show { display: inline-block; }
+
+    .container { max-width: 1100px; margin: 2rem auto; padding: 0 1.5rem; }
+
+    .card {
+      background: white;
+      border-radius: 14px;
+      padding: 2rem;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+      margin-bottom: 1.5rem;
+    }
+
+    .card h2 { font-size: 1.1rem; color: #444; margin-bottom: 1.5rem; }
+
+    .form-row { display: flex; gap: 1rem; flex-wrap: wrap; align-items: flex-end; margin-bottom: 1.2rem; }
+    .form-group { flex: 1; min-width: 180px; }
+    label { display: block; font-size: 0.82rem; font-weight: 600; color: #666; margin-bottom: 0.4rem; text-transform: uppercase; letter-spacing: 0.04em; }
+    select, input[type="text"] {
+      width: 100%; padding: 0.7rem 1rem;
+      border: 2px solid #e0e0e0; border-radius: 8px;
+      font-size: 1rem; outline: none; transition: border-color 0.2s;
+      background: white;
+    }
+    select:focus, input[type="text"]:focus { border-color: #1a1a2e; }
+
+    .btn {
+      padding: 0.75rem 1.8rem; border: none; border-radius: 8px;
+      font-size: 1rem; font-weight: 600; cursor: pointer; transition: all 0.15s;
+      white-space: nowrap;
+    }
+    .btn-dark  { background: #1a1a2e; color: white; }
+    .btn-dark:hover  { background: #2e2e4e; }
+    .btn-green { background: #16a34a; color: white; }
+    .btn-green:hover { background: #15803d; }
+    .btn-red   { background: #dc2626; color: white; }
+    .btn-red:hover   { background: #b91c1c; }
+    .btn-outline { background: white; color: #1a1a2e; border: 2px solid #1a1a2e; }
+    .btn-outline:hover { background: #f0f0f0; }
+
+    .alert {
+      padding: 0.75rem 1rem; border-radius: 8px;
+      font-size: 0.9rem; margin-bottom: 1rem;
+    }
+    .alert-info    { background: #eff6ff; color: #1e40af; border: 1px solid #bfdbfe; }
+    .alert-success { background: #f0fdf4; color: #166534; border: 1px solid #bbf7d0; }
+    .alert-error   { background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; }
+
+    /* Session layout */
+    .session-layout {
+      display: grid;
+      grid-template-columns: 340px 1fr;
+      gap: 1.5rem;
+      align-items: start;
+    }
+    @media (max-width: 720px) {
+      .session-layout { grid-template-columns: 1fr; }
+    }
+
+    /* QR panel */
+    .qr-panel { text-align: center; }
+    .qr-panel img {
+      width: 300px; height: 300px;
+      border: 3px solid #1a1a2e;
+      border-radius: 10px;
+      display: block;
+      margin: 0 auto;
+    }
+
+    .code-box {
+      margin: 1rem 0 0.5rem;
+      background: #f8f9fa;
+      border: 2px dashed #9ca3af;
+      border-radius: 10px;
+      padding: 0.6rem 1rem;
+    }
+    .code-label { font-size: 0.75rem; color: #888; text-transform: uppercase; letter-spacing: 0.08em; }
+    .code-text {
+      font-family: 'Courier New', monospace;
+      font-size: 2.8rem;
+      font-weight: 700;
+      letter-spacing: 0.3em;
+      color: #1a1a2e;
+      line-height: 1.2;
+    }
+    .url-text { font-size: 0.75rem; color: #9ca3af; word-break: break-all; margin-top: 0.5rem; }
+
+    /* Attendance panel */
+    .attend-panel {}
+    .count-row {
+      display: flex;
+      align-items: baseline;
+      gap: 0.5rem;
+      margin-bottom: 1rem;
+    }
+    .count-number { font-size: 2.8rem; font-weight: 700; color: #1a1a2e; line-height: 1; }
+    .count-suffix { font-size: 1rem; color: #6b7280; }
+
+    .student-list {
+      border: 1px solid #e5e7eb;
+      border-radius: 10px;
+      max-height: 380px;
+      overflow-y: auto;
+    }
+    .student-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.6rem 1rem;
+      border-bottom: 1px solid #f3f4f6;
+      font-size: 0.88rem;
+    }
+    .student-item:last-child { border-bottom: none; }
+    .student-item:nth-child(odd) { background: #fafafa; }
+    .s-name { font-weight: 600; color: #1a1a2e; }
+    .s-time { font-size: 0.78rem; color: #9ca3af; white-space: nowrap; }
+    .empty-state { padding: 2.5rem; text-align: center; color: #9ca3af; font-style: italic; }
+
+    .session-actions {
+      display: flex; gap: 0.75rem; flex-wrap: wrap;
+      margin-top: 1.5rem; padding-top: 1.5rem;
+      border-top: 1px solid #f0f0f0;
+    }
+
+    .refresh-note { font-size: 0.75rem; color: #9ca3af; margin-top: 0.5rem; }
+
+    #setup-view {}
+    #session-view { display: none; }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>Attendance</h1>
+  <span class="live-pill" id="live-pill">● LIVE</span>
+</header>
+
+<div class="container">
+
+  <!-- ── Setup View ──────────────────────────────────────────────── -->
+  <div id="setup-view" class="card">
+    <h2>Start a new session</h2>
+
+    <div class="form-row">
+      <div class="form-group" style="max-width:220px">
+        <label for="course">Course</label>
+        <select id="course">
+          <option value="ENG6">ENG 006</option>
+          <option value="EEC1">EEC 001</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label for="topic">Lecture Topic (optional)</label>
+        <input type="text" id="topic" placeholder="e.g. Lecture 5 — Fourier Transform">
+      </div>
+      <div>
+        <button class="btn btn-dark" onclick="startSession()">Start Session</button>
+      </div>
+    </div>
+
+    <div id="start-error" class="alert alert-error" style="display:none"></div>
+  </div>
+
+  <!-- ── Active Session View ─────────────────────────────────────── -->
+  <div id="session-view">
+
+    <div class="card" style="padding-bottom:0.5rem">
+      <div style="font-size:0.85rem; color:#6b7280; margin-bottom:1.5rem;">
+        <strong id="hdr-course" style="color:#1a1a2e; font-size:1rem;"></strong>
+        &nbsp;—&nbsp;<span id="hdr-topic" style="font-style:italic;"></span>
+      </div>
+
+      <div class="session-layout">
+
+        <!-- QR Code + Code -->
+        <div class="qr-panel">
+          <img id="qr-img" src="" alt="QR Code">
+          <div class="code-box">
+            <div class="code-label">Manual code</div>
+            <div class="code-text" id="code-display"></div>
+          </div>
+          <div class="url-text" id="url-display"></div>
+          <div style="margin-top:1rem; padding:0.75rem 1rem; background:#fffbeb; border:1px solid #fcd34d; border-radius:8px; font-size:0.82rem; color:#78350f; text-align:left; line-height:1.5;">
+            <strong>No phone or connection?</strong><br>
+            Write your name on a piece of paper, sign it, and hand it to <strong>Professor Knoesen</strong> after class.
+          </div>
+        </div>
+
+        <!-- Live Attendance List -->
+        <div class="attend-panel">
+          <div class="count-row">
+            <div class="count-number" id="count-num">0</div>
+            <div class="count-suffix">checked in</div>
+          </div>
+
+          <div class="student-list" id="student-list">
+            <div class="empty-state">Waiting for students to check in…</div>
+          </div>
+
+          <div class="refresh-note" id="refresh-note">Auto-refreshes every 3 s</div>
+        </div>
+
+      </div>
+
+      <div class="session-actions">
+        <button class="btn btn-green" onclick="saveSession()">Save Attendance CSV</button>
+        <button class="btn btn-red"   onclick="endSession()">End Session</button>
+        <button class="btn btn-outline" onclick="refreshAttendance()">Refresh Now</button>
+      </div>
+
+      <div id="save-msg" class="alert alert-success" style="display:none; margin-top:1rem;"></div>
+    </div>
+
+  </div>
+
+</div><!-- /container -->
+
+<script>
+  let currentCode = null;
+  let pollTimer   = null;
+
+  // Allow Enter in topic field
+  document.getElementById('topic').addEventListener('keydown', e => {
+    if (e.key === 'Enter') startSession();
+  });
+
+  async function startSession() {
+    const course = document.getElementById('course').value;
+    const topic  = document.getElementById('topic').value.trim();
+
+    const res  = await fetch('/api/session/start', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ course, topic })
+    });
+    const data = await res.json();
+
+    if (!res.ok) {
+      const el = document.getElementById('start-error');
+      el.style.display = 'block';
+      el.textContent = data.error;
+      return;
+    }
+
+    currentCode = data.code;
+
+    document.getElementById('qr-img').src               = data.qrDataUrl;
+    document.getElementById('code-display').textContent = data.code;
+    document.getElementById('url-display').textContent  = data.url;
+    document.getElementById('hdr-course').textContent   = course === 'ENG6' ? 'ENG 006' : 'EEC 001';
+    document.getElementById('hdr-topic').textContent    = topic || 'No topic';
+
+    document.getElementById('setup-view').style.display   = 'none';
+    document.getElementById('session-view').style.display = 'block';
+    document.getElementById('live-pill').classList.add('show');
+
+    pollTimer = setInterval(refreshAttendance, 3000);
+    refreshAttendance();
+  }
+
+  async function refreshAttendance() {
+    if (!currentCode) return;
+    try {
+      const res  = await fetch(`/api/session/${currentCode}`);
+      const data = await res.json();
+      if (data.error) return;
+
+      document.getElementById('count-num').textContent = data.count;
+
+      const list = document.getElementById('student-list');
+      if (data.attendance.length === 0) {
+        list.innerHTML = '<div class="empty-state">Waiting for students to check in…</div>';
+      } else {
+        list.innerHTML = data.attendance
+          .slice().reverse()
+          .map(a => `
+            <div class="student-item">
+              <div class="s-name">${escHtml(a.loginId)}</div>
+              <div class="s-time">${new Date(a.time).toLocaleTimeString()}</div>
+            </div>
+          `).join('');
+      }
+
+      document.getElementById('refresh-note').textContent =
+        `Updated ${new Date().toLocaleTimeString()} — auto-refreshes every 3 s`;
+    } catch (e) {
+      document.getElementById('refresh-note').textContent = 'Refresh failed — retrying…';
+    }
+  }
+
+  async function saveSession() {
+    const res = await fetch(`/api/session/${currentCode}/save`, { method: 'POST' });
+    const msg = document.getElementById('save-msg');
+
+    if (!res.ok) {
+      msg.style.display = 'block';
+      msg.className = 'alert alert-error';
+      msg.textContent = 'Save failed — try again.';
+      return;
+    }
+
+    triggerDownload(await res.blob(), res);
+    const count = document.getElementById('count-num').textContent;
+    msg.style.display = 'block';
+    msg.className = 'alert alert-success';
+    msg.textContent = `Downloaded! ${count} students recorded. Check your Downloads folder.`;
+  }
+
+  async function endSession() {
+    if (!confirm('End session and download attendance CSV?')) return;
+
+    clearInterval(pollTimer);
+    pollTimer = null;
+
+    const res = await fetch(`/api/session/${currentCode}/end`, { method: 'POST' });
+    document.getElementById('live-pill').classList.remove('show');
+
+    if (res.ok) {
+      triggerDownload(await res.blob(), res);
+    }
+
+    const count = document.getElementById('count-num').textContent;
+    const msg = document.getElementById('save-msg');
+    msg.style.display = 'block';
+    msg.className = 'alert alert-success';
+    msg.textContent = `Session ended. ${count} students — CSV downloaded to your Downloads folder.`;
+
+    setTimeout(() => {
+      document.getElementById('session-view').style.display = 'none';
+      document.getElementById('setup-view').style.display  = 'block';
+      document.getElementById('save-msg').style.display    = 'none';
+      document.getElementById('count-num').textContent     = '0';
+      document.getElementById('student-list').innerHTML    = '<div class="empty-state">Waiting for students to check in…</div>';
+      currentCode = null;
+    }, 4000);
+  }
+
+  function triggerDownload(blob, res) {
+    const disposition = res.headers.get('Content-Disposition') || '';
+    const match = disposition.match(/filename="(.+?)"/);
+    const filename = match ? match[1] : `attendance_${currentCode}.csv`;
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
+  function escHtml(str) {
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+</script>
+</body>
+</html>

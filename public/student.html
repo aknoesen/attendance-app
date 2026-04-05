@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <title>Mark Attendance</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      background: #f0f2f5;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1.5rem;
+    }
+
+    .card {
+      background: white;
+      border-radius: 18px;
+      padding: 2.5rem 2rem;
+      max-width: 420px;
+      width: 100%;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.10);
+      text-align: center;
+    }
+
+    .header-icon {
+      font-size: 3rem;
+      margin-bottom: 0.75rem;
+      line-height: 1;
+    }
+
+    h1 {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: #1a1a2e;
+      margin-bottom: 0.35rem;
+    }
+
+    .subtitle {
+      font-size: 0.95rem;
+      color: #6b7280;
+      margin-bottom: 2rem;
+      min-height: 1.4em;
+    }
+
+    .form-group {
+      text-align: left;
+      margin-bottom: 1.25rem;
+    }
+
+    label {
+      display: block;
+      font-size: 0.82rem;
+      font-weight: 700;
+      color: #374151;
+      margin-bottom: 0.5rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    input[type="text"] {
+      width: 100%;
+      padding: 1rem;
+      border: 2px solid #e5e7eb;
+      border-radius: 10px;
+      font-size: 1.15rem;
+      outline: none;
+      transition: border-color 0.2s;
+      text-align: center;
+      letter-spacing: 0.04em;
+      background: #fafafa;
+    }
+    input[type="text"]:focus {
+      border-color: #1a1a2e;
+      background: white;
+    }
+
+    .hint {
+      font-size: 0.78rem;
+      color: #9ca3af;
+      margin-top: 0.4rem;
+      text-align: center;
+    }
+
+    .btn-submit {
+      width: 100%;
+      padding: 1rem;
+      border: none;
+      border-radius: 10px;
+      font-size: 1.1rem;
+      font-weight: 700;
+      cursor: pointer;
+      background: #1a1a2e;
+      color: white;
+      transition: background 0.15s, transform 0.1s;
+      margin-top: 0.25rem;
+    }
+    .btn-submit:hover    { background: #2e2e4e; }
+    .btn-submit:active   { transform: scale(0.98); }
+    .btn-submit:disabled { background: #d1d5db; cursor: not-allowed; transform: none; }
+
+    /* Result states */
+    .result {
+      display: none;
+      padding: 2rem 1.5rem;
+      border-radius: 12px;
+      margin-top: 0.5rem;
+    }
+    .result .icon  { font-size: 3.5rem; line-height: 1; margin-bottom: 0.75rem; }
+    .result h2     { font-size: 1.2rem; margin-bottom: 0.4rem; font-weight: 700; }
+    .result p      { font-size: 0.92rem; opacity: 0.85; line-height: 1.5; }
+
+    .result.success {
+      background: #f0fdf4;
+      border: 1.5px solid #86efac;
+      color: #14532d;
+    }
+    .result.already {
+      background: #fffbeb;
+      border: 1.5px solid #fde68a;
+      color: #78350f;
+    }
+    .result.error {
+      background: #fef2f2;
+      border: 1.5px solid #fca5a5;
+      color: #7f1d1d;
+    }
+
+    .try-again {
+      display: none;
+      margin-top: 1.25rem;
+      font-size: 0.9rem;
+      color: #6b7280;
+      cursor: pointer;
+      text-decoration: underline;
+    }
+    .try-again:hover { color: #1a1a2e; }
+
+    .spinner {
+      display: none;
+      justify-content: center;
+      margin: 0.75rem 0;
+    }
+    .spinner::after {
+      content: '';
+      width: 24px; height: 24px;
+      border: 3px solid #e5e7eb;
+      border-top-color: #1a1a2e;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+<div class="card">
+  <div class="header-icon">📋</div>
+  <h1 id="course-title">Mark Attendance</h1>
+  <div class="subtitle" id="subtitle">Loading session…</div>
+
+  <div id="form-area">
+    <div class="form-group">
+      <label for="login-id">UC Davis Login ID</label>
+      <input
+        type="text"
+        id="login-id"
+        placeholder="e.g. hwabbott"
+        autocomplete="off"
+        autocorrect="off"
+        autocapitalize="off"
+        spellcheck="false"
+      >
+      <div class="hint">Use your Kerberos / UC Davis login ID</div>
+    </div>
+
+    <div class="spinner" id="spinner"></div>
+
+    <button class="btn-submit" id="submit-btn" onclick="submitAttendance()">
+      Mark Attendance
+    </button>
+  </div>
+
+  <div class="result" id="result">
+    <div class="icon" id="r-icon"></div>
+    <h2 id="r-title"></h2>
+    <p id="r-msg"></p>
+  </div>
+
+  <div class="try-again" id="try-again" onclick="resetForm()">← Try again</div>
+</div>
+
+<script>
+  const code = window.location.pathname.split('/').pop();
+
+  // Load session info
+  fetch(`/api/session/${code}`)
+    .then(r => r.json())
+    .then(data => {
+      if (data.error || !data.active) {
+        document.getElementById('subtitle').textContent =
+          data.active === false ? 'This session has ended.' : 'Session not found.';
+        document.getElementById('form-area').style.display = 'none';
+        return;
+      }
+      document.getElementById('course-title').textContent = data.courseName + ' Attendance';
+      document.getElementById('subtitle').textContent = data.topic || 'Enter your login ID below';
+    })
+    .catch(() => {
+      document.getElementById('subtitle').textContent = 'Could not connect — please try again.';
+      document.getElementById('form-area').style.display = 'none';
+    });
+
+  document.getElementById('login-id').addEventListener('keydown', e => {
+    if (e.key === 'Enter') submitAttendance();
+  });
+
+  // Auto-focus on load
+  window.addEventListener('load', () => {
+    setTimeout(() => document.getElementById('login-id').focus(), 300);
+  });
+
+  async function submitAttendance() {
+    const loginId = document.getElementById('login-id').value.trim();
+    if (!loginId) {
+      document.getElementById('login-id').focus();
+      return;
+    }
+
+    document.getElementById('submit-btn').disabled = true;
+    document.getElementById('spinner').style.display = 'flex';
+
+    try {
+      const res  = await fetch(`/api/attend/${code}`, {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ loginId })
+      });
+      const data = await res.json();
+
+      document.getElementById('spinner').style.display = 'none';
+      document.getElementById('form-area').style.display = 'none';
+
+      const result = document.getElementById('result');
+      result.style.display = 'block';
+
+      if (data.success) {
+        result.className = 'result success';
+        document.getElementById('r-icon').textContent  = '✅';
+        document.getElementById('r-title').textContent = "You're checked in!";
+        document.getElementById('r-msg').textContent   =
+          `Login ID "${data.loginId}" recorded. ${data.count} student${data.count !== 1 ? 's' : ''} checked in so far.`;
+
+      } else if (data.already) {
+        result.className = 'result already';
+        document.getElementById('r-icon').textContent  = '✓';
+        document.getElementById('r-title').textContent = 'Already checked in';
+        document.getElementById('r-msg').textContent   =
+          `"${data.loginId}" was recorded at ${new Date(data.time).toLocaleTimeString()}. You're all set.`;
+
+      } else {
+        result.className = 'result error';
+        document.getElementById('r-icon').textContent  = '✗';
+        document.getElementById('r-title').textContent = 'Something went wrong';
+        document.getElementById('r-msg').textContent   =
+          data.error || 'Please try again.';
+        document.getElementById('try-again').style.display = 'block';
+      }
+
+    } catch (err) {
+      document.getElementById('spinner').style.display = 'none';
+      document.getElementById('submit-btn').disabled = false;
+      alert('Network error — please try again.');
+    }
+  }
+
+  function resetForm() {
+    document.getElementById('result').style.display       = 'none';
+    document.getElementById('result').className          = 'result';
+    document.getElementById('try-again').style.display   = 'none';
+    document.getElementById('form-area').style.display   = 'block';
+    document.getElementById('submit-btn').disabled       = false;
+    document.getElementById('login-id').value            = '';
+    document.getElementById('login-id').focus();
+  }
+</script>
+</body>
+</html>

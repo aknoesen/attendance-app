@@ -1,0 +1,120 @@
+
+python start.py
+
+
+
+
+
+
+
+============================================================
+  ATTENDANCE APP — ONE-TIME SETUP (requires Admin rights)
+============================================================
+
+STEP 1 — Open an Administrator terminal
+  • Click the Start menu
+  • Type: cmd
+  • Right-click "Command Prompt" → "Run as administrator"
+  • Click Yes on the UAC prompt
+
+STEP 2 — Add the firewall rule (copy/paste this exactly):
+
+  netsh advfirewall firewall add rule name="Attendance App" dir=in action=allow protocol=TCP localport=3000
+
+  Press Enter. You should see: "Ok."
+
+STEP 3 — Download ngrok (one time only)
+  • Go to https://ngrok.com and download ngrok for Windows
+  • Unzip it and place ngrok.exe on your Desktop
+
+STEP 4 — Done. Close the admin terminal.
+
+============================================================
+  EVERY LECTURE — STEP BY STEP
+============================================================
+
+STEP 1 — Run the launcher
+  Open a terminal and run:
+
+    cd C:\Users\aknoesen\Documents\Knoesen\AttendanceApp
+    python start.py
+
+  The script will automatically:
+    • Kill any old server on port 3000
+    • Start the Node.js server
+    • Start ngrok
+    • Open your browser to the dashboard
+    • Print the ngrok URL for you
+
+  Example output:
+    ngrok URL (paste into dashboard):
+    https://abc123.ngrok-free.app
+
+  Leave the script window open during class.
+
+------------------------------------------------------------
+
+STEP 2 — Start a session in the browser
+  Your browser will open to http://localhost:3000 automatically.
+
+  1. Select the course (ENG 006 or EEC 001)
+  2. Enter a lecture topic (optional, e.g. "Lecture 5 — Fourier Transform")
+  3. Copy the ngrok URL printed by the launcher
+  4. Paste it into the "ngrok URL" field
+  5. Click "Start Session"
+
+  A QR code will appear — project it on screen for students.
+
+------------------------------------------------------------
+
+STEP 3 — Test it yourself first
+  Scan the QR code with your phone (or open the URL), then enter:
+
+    testprofk
+
+  You should see a green confirmation. Check that your name
+  appears in the live list on the dashboard before showing
+  the code to students.
+
+------------------------------------------------------------
+
+STEP 4 — During class
+  • Students scan the QR code and enter their UC Davis login ID
+    (e.g. hwabbott) or their numeric student ID number
+  • The live list on the dashboard updates every 3 seconds
+  • Students who cannot connect should write their name on a
+    piece of paper, sign it, and hand it to Professor Knoesen
+
+------------------------------------------------------------
+
+STEP 5 — End of class
+  • Click "Save Attendance CSV" to save (session stays open), OR
+  • Click "End Session" to save and close
+
+  Files are saved to:
+    C:\Users\aknoesen\Documents\Knoesen\AttendanceApp\attendance\
+
+============================================================
+  IF SOMETHING GOES WRONG
+============================================================
+
+  "ngrok.exe not found" error from the launcher
+      → Make sure ngrok.exe is on your Desktop
+      → Or edit start.py and add its location to NGROK_SEARCH_PATHS
+
+  "Safari cannot reach" on phone
+      → Make sure you pasted the ngrok URL before clicking Start Session
+      → Check that the ngrok window is still open (not closed)
+
+  "Port already in use" error
+      → The launcher handles this automatically
+      → If it persists, open Task Manager, find "node.exe", and End Task
+
+  Student not found
+      → They should try their numeric student ID instead of login ID
+
+  Wrong IP / students cannot connect at home (no ngrok)
+      → Leave the ngrok URL field blank when starting the session
+      → Restart the server after switching networks
+
+============================================================

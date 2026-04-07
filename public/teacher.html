@@ -383,6 +383,15 @@
     URL.revokeObjectURL(url);
   }
 
+  // Warn before closing tab if a session is active
+  window.addEventListener('beforeunload', e => {
+    if (!currentCode) return;
+    // Best-effort: tell server to end the session (no CSV download possible on tab close)
+    navigator.sendBeacon(`/api/session/${currentCode}/end`);
+    e.preventDefault();
+    e.returnValue = ''; // triggers browser "Leave site?" dialog
+  });
+
   function escHtml(str) {
     return String(str)
       .replace(/&/g, '&amp;')

@@ -177,7 +177,7 @@
       <div class="hint">Use your Kerberos / UC Davis login ID (e.g. hwabbott)</div>
       <div class="hint" style="color:#b45309; margin-top:0.4rem;">&#9888; Do NOT enter your 9-digit Student ID number</div>
       <div id="nine-digit-warn" style="display:none; margin-top:0.5rem; padding:0.6rem 0.75rem; background:#fef2f2; border:1.5px solid #fca5a5; border-radius:8px; color:#7f1d1d; font-size:0.85rem; text-align:left;">
-        That looks like your 9-digit Student ID. Please enter your <strong>Login ID</strong> instead — the short username you use to log in to UC Davis (e.g. <strong>hwabbott</strong>).
+        That looks like your 9-digit Student ID. Please enter your Login ID instead — the short username you use to log in to UC Davis (e.g. hwabbott).
       </div>
     </div>
 
@@ -225,7 +225,10 @@
   document.getElementById('login-id').addEventListener('input', () => {
     document.getElementById('login-id').style.borderColor = '';
     const warn = document.getElementById('nine-digit-warn');
-    if (warn) warn.style.display = 'none';
+    if (warn) {
+      warn.style.display = 'none';
+      warn.textContent = 'That looks like your 9-digit Student ID. Please enter your Login ID instead — the short username you use to log in to UC Davis (e.g. hwabbott).';
+    }
   });
 
   // Auto-focus on load
@@ -237,6 +240,17 @@
     const loginId = document.getElementById('login-id').value.trim();
     if (!loginId) {
       document.getElementById('login-id').focus();
+      return;
+    }
+
+    // Block entries containing spaces (login IDs never have spaces)
+    if (/\s/.test(loginId)) {
+      const input = document.getElementById('login-id');
+      input.style.borderColor = '#dc2626';
+      document.getElementById('nine-digit-warn').textContent =
+        'Login IDs do not contain spaces. Enter your Kerberos username only (e.g. hwabbott).';
+      document.getElementById('nine-digit-warn').style.display = 'block';
+      input.focus();
       return;
     }
 

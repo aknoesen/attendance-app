@@ -47,6 +47,30 @@ READONLY_COLS = {
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
+def edit_distance(a, b):
+    """Standard Levenshtein edit distance."""
+    m, n = len(a), len(b)
+    dp = list(range(n + 1))
+    for i in range(1, m + 1):
+        prev, dp[0] = dp[0], i
+        for j in range(1, n + 1):
+            prev, dp[j] = dp[j], prev if a[i-1] == b[j-1] else 1 + min(prev, dp[j], dp[j-1])
+    return dp[n]
+
+
+def closest_match(submitted, roster_logins, max_dist=2):
+    """Return (best_login, distance) if within max_dist, else None."""
+    # First try stripping spaces — catches 'j 2 d q p e' -> 'j2dqpe'
+    nospace = submitted.replace(" ", "")
+    if nospace in roster_logins:
+        return nospace, 0
+    best, best_d = None, max_dist + 1
+    for login in roster_logins:
+        d = edit_distance(submitted, login)
+        if d < best_d:
+            best, best_d = login, d
+    return (best, best_d) if best_d <= max_dist else None
+
 def ask(prompt, default=None):
     """Prompt the user; return stripped input or default if blank."""
     if default:
@@ -290,9 +314,18 @@ def main():
     print(f"  Present : {len(confirmed)}")
     print(f"  Absent  : {len(absent)}")
     if unmatched:
-        print(f"  Check-ins NOT on roster ({len(unmatched)}) — not counted as present:")
+        print(f"\n  Check-ins NOT matched on roster ({len(unmatched)}):")
+        roster_logins = set(roster.keys())
         for u in sorted(unmatched):
-            print(f"    '{u}'")
+            match = closest_match(u, roster_logins)
+            if match:
+                suggestion, dist = match
+                if dist == 0:
+                    print(f"    '{u}'  -> spaces stripped -> '{suggestion}'  (likely match — verify)")
+                else:
+                    print(f"    '{u}'  -> possible typo for '{suggestion}'  (edit distance {dist})")
+            else:
+                print(f"    '{u}'  (no close match found)")
 
     # ── Write output files ────────────────────────────────────────────────────
     label_safe = assignment_label.replace(" ", "_")
